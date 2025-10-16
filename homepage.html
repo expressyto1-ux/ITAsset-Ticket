@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Asset Inventory Record</title>
+    <!-- Inter font & FontAwesome icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet" />
+
+    <style>
+        :root {
+            --accent: #4da3ff;
+            --accent-hover: #298dfc;
+            --glass-bg: rgba(255, 255, 255, 0.46);
+            --border-glass: rgba(255, 255, 255, 0.35);
+            --shadow-glass: rgba(0, 0, 0, 0.05);
+            --text: #1f2933;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            margin: 0;
+            background: linear-gradient(135deg, #eaf6ff 0%, #f7fbff 100%);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 22px;
+            backdrop-filter: blur(12px);
+            background: var(--glass-bg);
+            border-bottom: 1px solid var(--border-glass);
+            box-shadow: 0 4px 18px var(--shadow-glass);
+            z-index: 40;
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--accent-hover);
+        }
+
+        .header-title-group i {
+            background: linear-gradient(180deg, rgba(77, 163, 255, 0.12), rgba(77, 163, 255, 0.06));
+            padding: 8px;
+            border-radius: 10px;
+            color: var(--accent-hover);
+            font-size: 16px;
+        }
+
+        #welcomeMessage {
+            font-weight: 600;
+            color: #233041;
+            min-width: 160px;
+            text-align: right;
+        }
+
+        .header-user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+
+        .logout-button {
+            border: none;
+            background: var(--accent);
+            color: white;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .logout-button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(77, 163, 255, 0.32);
+        }
+
+        /* Layout */
+        .container {
+            display: flex;
+            /* Initially hidden until login */
+            height: calc(100vh - 64px);
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            backdrop-filter: blur(14px);
+            background: var(--glass-bg);
+            border-right: 1px solid var(--border-glass);
+            box-shadow: 6px 0 26px var(--shadow-glass);
+            overflow: hidden;
+        }
+
+        .sidebar-logo {
+            height: 55px;
+            /* Set height to fit within the header */
+            margin: 0;
+            /* Remove auto margins */
+            border-radius: 10px;
+            display: block;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 6px 8px;
+        }
+
+        .sidebar a {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 18px;
+            text-decoration: none;
+            color: #24303a;
+            font-weight: 600;
+            transition: all 0.18s;
+            border-left: 3px solid transparent;
+            border-radius: 8px;
+            margin: 0 12px;
+        }
+
+        .sidebar a i {
+            width: 22px;
+            text-align: center;
+            color: var(--accent-hover);
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: rgba(77, 163, 255, 0.12);
+            color: var(--accent-hover);
+            border-left: 3px solid var(--accent-hover);
+            transform: translateX(2px);
+        }
+
+        .sidebar-stats {
+            margin-top: 16px;
+            padding: 0 18px;
+            color: #40515f;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .stat-group {
+            margin-bottom: 20px;
+        }
+
+        .stat-title {
+            font-weight: 700;
+            color: var(--accent-hover);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(77, 163, 255, 0.14);
+            padding-bottom: 6px;
+        }
+
+        .sidebar-stats ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 13px;
+        }
+
+        .sidebar-stats li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 6px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            /* Increased font size for the list items */
+            transition: background 0.18s;
+        }
+
+        .sidebar-stats li.clickable-stat {
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-radius: 4px;
+        }
+
+        .sidebar-stats li:hover {
+            background: rgba(77, 163, 255, 0.08);
+        }
+
+        .stat-value {
+            padding: 3px 8px;
+            border-radius: 8px;
+            background: rgba(77, 163, 255, 0.12);
+            color: var(--accent-hover);
+            font-weight: 700;
+            font-size: 13px;
+            /* Adjusted size for the count pill */
+        }
+
+        .stat-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .stat-bar-wrapper {
+            cursor: pointer;
+        }
+
+        .stat-bar-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .stat-bar-container {
+            background-color: rgba(77, 163, 255, 0.08);
+            border-radius: 4px;
+            overflow: hidden;
+            transition: box-shadow 0.2s ease;
+            height: 8px;
+        }
+
+        .stat-bar {
+            background-color: var(--accent);
+            border-radius: 4px;
+            height: 100%;
+        }
+
+        /* Main content */
+        .main-content {
+            flex: 1;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.54);
+            overflow: hidden;
+        }
+
+        .frame-wrapper {
+            flex: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(30, 40, 60, 0.04);
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+
+            /* --- Header --- */
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                padding: 15px;
+            }
+
+            /* --- Main Layout & Sidebar --- */
+            .container {
+                flex-direction: column;
+                height: calc(100vh - 64px);
+                /* Adjust height for shorter mobile header */
+            }
+
+            .sidebar {
+                flex-direction: row;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+                padding: 0;
+                overflow-x: auto;
+                /* Allow scrolling if many links */
+            }
+
+            /* Hide logo and stats on mobile for a cleaner nav bar */
+            .sidebar-logo,
+            .sidebar-stats {
+                display: none;
+            }
+
+            .nav-links {
+                flex-direction: row;
+            }
+
+            .sidebar a {
+                flex: 1;
+                text-align: center;
+            }
+
+            .login-form-wrapper {
+                padding: 30px 25px;
+            }
+
+            .admin-pass-card {
+                width: 90%;
+            }
+
+            .print-modal-content {
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+            }
+        }
+
+        /* Admin pass modal card */
+        .admin-pass-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--glass-bg);
+            border-radius: 12px;
+            padding: 26px;
+            box-shadow: 0 8px 28px rgba(31, 38, 135, 0.12);
+            border: 1px solid var(--border-glass);
+            text-align: center;
+        }
+
+        .admin-pass-card h3 {
+            margin: 0 0 6px 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #253444;
+        }
+
+        .admin-pass-card p {
+            font-size: 14px;
+            color: #4b5563;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            margin-top: 16px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .modal-buttons button[type="submit"] {
+            background: var(--accent);
+            color: white;
+        }
+
+        .modal-buttons button[type="button"] {
+            background: #9aa6b2;
+            color: white;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-glass);
+            box-shadow: 0 10px 40px rgba(31, 38, 135, 0.12);
+            width: 100%;
+            max-width: 880px;
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .login-image-container {
+            flex-basis: 50%;
+            background: url('https://i.imgur.com/1sOjAqv.png') no-repeat center center;
+            background-size: cover;
+            min-height: 320px;
+        }
+
+        .login-form-wrapper {
+            flex-basis: 50%;
+            padding: 36px 42px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .login-image-container {
+                display: none;
+            }
+        }
+
+        .login-card h2 {
+            margin: 0 0 8px 0;
+            font-size: 1.4rem;
+            color: var(--accent-hover);
+            font-weight: 700;
+        }
+
+        .form-container {
+            position: relative;
+            transition: height 0.28s ease;
+        }
+
+        .login-card form {
+            transition: opacity 0.28s, transform 0.28s;
+            position: absolute;
+            width: 100%;
+        }
+
+        .login-card form.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(20px);
+        }
+
+        .login-card form.active {
+            opacity: 1;
+            transform: translateX(0);
+            position: relative;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+        .input-group .icon {
+            position: absolute;
+            top: 50%;
+            left: 14px;
+            transform: translateY(-50%);
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 14px 12px 44px;
+            border-radius: 10px;
+            border: 1px solid rgba(77, 163, 255, 0.18);
+            background: rgba(255, 255, 255, 0.85);
+            font-size: 14px;
+            transition: box-shadow 0.18s, border-color 0.18s, background 0.18s;
+            box-sizing: border-box;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 8px 24px rgba(77, 163, 255, 0.08);
+            background: #fff;
+        }
+
+        .login-card button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.22s ease;
+            margin-top: 6px;
+            background: rgba(77, 163, 255, 0.2);
+            border: 1px solid rgba(77, 163, 255, 0.3);
+            color: var(--accent-hover);
+            backdrop-filter: blur(4px);
+        }
+
+        .login-card button:hover {
+            background: rgba(77, 163, 255, 0.4);
+            border-color: rgba(77, 163, 255, 0.5);
+            box-shadow: 0 4px 18px rgba(77, 163, 255, 0.2);
+        }
+
+        .link {
+            margin-top: 8px;
+            color: var(--accent-hover);
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .error {
+            color: #d04545;
+            font-weight: 600;
+            min-height: 20px;
+            margin-top: 6px;
+        }
+
+        .error.success {
+            color: #28a745;
+        }
+
+        .loader-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            border-radius: 12px;
+        }
+
+        .loader-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 4px solid rgba(0, 0, 0, 0.06);
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="header-title-group">
+            <img src="https://i.imgur.com/aDtszD4.png" alt="Logo" class="sidebar-logo">
+        </div>
+        <div class="header-user-info">
+            <span id="welcomeMessage"></span>
+            <button id="logoutButton" class="logout-button hidden">Log Out</button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="login-card">
+            <div class="login-image-container"></div>
+            <div class="login-form-wrapper">
+                <div id="loader-overlay" class="loader-overlay hidden">
+                    <div class="loader"></div>
+                </div>
+                <h2><i class="fa-solid fa-shield-halved"></i> IT Asset Inventory</h2>
+                <datalist id="user-list"></datalist>
+
+                <div class="form-container" id="formContainer">
+                    <!-- Login Form -->
+                    <form id="loginForm" class="active">
+                        <input type="hidden" name="action" value="login">
+                        <div class="input-group">
+                            <i class="fa-solid fa-user icon"></i>
+                            <input type="text" id="loginUser" name="User" list="user-list" required
+                                autocomplete="username" placeholder="Branch">
+                        </div>
+                        <div class="input-group">
+                            <i class="fa-solid fa-lock icon"></i>
+                            <input type="password" id="loginPass" name="Password" required
+                                autocomplete="current-password" placeholder="Password">
+                        </div>
+                        <button type="submit">Login</button>
+                        <div class="error" id="loginError"></div>
+                    </form>
+
+                    <!-- Create Account Form -->
+                    <form id="createForm" class="hidden">
+                        <input type="hidden" name="action" value="create">
+                        <div class="input-group">
+                            <i class="fa-solid fa-user-plus icon"></i>
+                            <input type="text" id="newUser" name="User" list="user-list" required
+                                autocomplete="username" placeholder="Choose a Username">
+                        </div>
+                        <div class="input-group">
+                            <i class="fa-solid fa-lock icon"></i>
+                            <input type="password" id="newPass" name="Password" required autocomplete="new-password"
+                                placeholder="Create a Password">
+                        </div>
+                        <button type="submit">Create Account</button>
+                        <div class="error" id="createError"></div>
+                    </form>
+                </div>
+
+                <div class="link" id="toggleLink">Create an account</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Password Modal -->
+    <div id="adminPassModal" class="modal-overlay hidden">
+        <div class="admin-pass-card">
+            <h3>Admin Authorization</h3>
+            <p>Please enter the admin password to proceed.</p>
+            <form id="adminPassForm">
+                <div class="input-group">
+                    <i class="fa-solid fa-key icon"></i>
+                    <input type="password" id="adminPassInput" placeholder="Admin Password" required>
+                </div>
+                <div class="error" id="adminPassError"></div>
+                <div class="modal-buttons">
+                    <button type="button" id="cancelAdminPass">Cancel</button>
+                    <button type="submit">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Print Modal -->
+    <div id="printModal" class="modal-overlay hidden">
+        <div class="print-modal-content">
+            <div class="print-modal-header">
+                <h3><i class="fa-solid fa-print"></i> Print Asset Labels</h3>
+                <button id="closePrintModalBtn" class="print-modal-close-btn">&times;</button>
+            </div>
+            <div class="print-modal-body">
+                <iframe id="printFrame" src="about:blank"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .print-modal-content {
+            background: var(--glass-bg);
+            border-radius: 14px;
+            border: 1px solid var(--border-glass);
+            width: 90%;
+            max-width: 980px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(31, 38, 135, 0.13);
+        }
+
+        .print-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(77, 163, 255, 0.08);
+        }
+
+        .print-modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .print-modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #2b3b47;
+        }
+
+        .print-modal-body {
+            flex-grow: 1;
+            padding: 10px;
+        }
+
+        #printFrame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+
+    <div class="container hidden" id="mainContainer">
+        <div class="sidebar">
+            <a href="javascript:void(0)" onclick="loadPage('view_assets.html', this)">
+                <i class="fa-solid fa-laptop-code"></i> View Assets
+            </a>
+            <a href="javascript:void(0)" onclick="loadPage('simple_ticket_view.html', this)">
+                <i class="fa-solid fa-ticket"></i> Ticket Viewer
+            </a>
+            <div class="sidebar-stats">
+                <div class="stat-group">
+                    <h4 class="stat-title">Asset Types</h4>
+                    <div id="assetTypeStats" class="stat-bars">
+                        <div>Loading data...</div>
+                    </div>
+                </div>
+                <div class="stat-group">
+                    <h4 class="stat-title">Asset Status</h4>
+                    <div id="assetStatusStats" class="stat-bars">
+                        <div>Loading data...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="frame-wrapper">
+                <iframe id="contentFrame" src="about:blank"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const scriptURL = "https://script.google.com/macros/s/AKfycbywN8XyFh7d7ph9bAv35V47CX6EOJK7eHg_w8-5R4Pz2MwBDmbXq43mTUb0gtcTiDr0/exec";
+
+        // --- Main Page Logic ---
+        function loadPage(page, el) {
+            const contentFrame = document.getElementById("contentFrame");
+            const loggedInUser = sessionStorage.getItem("loggedInUser");
+
+            if ((page === 'view_assets.html' || page === 'Asset.html' || page === 'simple_ticket_view.html') && loggedInUser) {
+                contentFrame.src = `${page}?branch=${encodeURIComponent(loggedInUser)}`;
+            } else {
+                contentFrame.src = page;
+            }
+
+            if (el) {
+                document.querySelectorAll(".sidebar a").forEach(a => a.classList.remove("active"));
+                el.classList.add("active");
+            }
+        }
+
+        function openAddAssetModalInFrame() {
+            const contentFrame = document.getElementById("contentFrame");
+            // Ensure the view_assets page is loaded first
+            if (!contentFrame.src.includes('view_assets.html')) {
+                loadPage('view_assets.html', document.getElementById('viewAssetsLink'));
+            }
+            // Send a message to the iframe to open its modal
+            contentFrame.contentWindow.postMessage('openAddAssetModal', '*');
+            // Note: We don't make the "Add Asset" link active, as the view is still "View Assets"
+        }
+
+        // --- Login Modal Logic ---
+        const loginModal = document.getElementById("loginModal");
+        const mainContainer = document.getElementById("mainContainer");
+        const loginForm = document.getElementById("loginForm");
+        const createForm = document.getElementById("createForm");
+        const toggleLink = document.getElementById("toggleLink");
+        const loginError = document.getElementById("loginError");
+        const createError = document.getElementById("createError");
+        const formContainer = document.getElementById("formContainer");
+        const loader = document.getElementById("loader-overlay");
+        const welcomeMessage = document.getElementById("welcomeMessage");
+        const logoutButton = document.getElementById("logoutButton");
+        const adminPassModal = document.getElementById("adminPassModal");
+        const adminPassForm = document.getElementById("adminPassForm");
+        const adminPassInput = document.getElementById("adminPassInput");
+        const adminPassError = document.getElementById("adminPassError");
+        const cancelAdminPass = document.getElementById("cancelAdminPass");
+
+        function setFormContainerHeight() {
+            const activeForm = formContainer.querySelector('form.active');
+            if (activeForm) {
+                formContainer.style.height = `${activeForm.offsetHeight}px`;
+            }
+        }
+
+        // --- Toggle between Login and Create Account Forms ---
+        toggleLink.addEventListener("click", () => {
+            const isLoginVisible = loginForm.classList.contains("active");
+
+            if (isLoginVisible) {
+                // The user wants to create an account, so show the admin password modal first.
+                adminPassModal.classList.remove("hidden");
+                adminPassInput.focus();
+            } else {
+                // The user is on the create form and wants to go back to login.
+                createForm.classList.remove("active");
+                createForm.classList.add("hidden");
+                loginForm.classList.remove("hidden");
+                loginForm.classList.add("active");
+                toggleLink.textContent = "Create an account";
+                createError.textContent = ""; // Clear any previous error messages
+                createError.classList.remove("success");
+            }
+            // Adjust the container height for the smooth transition animation.
+            setFormContainerHeight();
+        });
+
+        function filterAssetsByType(type) {
+            const contentFrame = document.getElementById("contentFrame");
+
+            // Ensure the view_assets page is loaded first
+            if (!contentFrame.src.includes('view_assets.html')) {
+                loadPage('view_assets.html');
+            }
+            contentFrame.contentWindow.postMessage({ action: 'filterByType', type: type }, '*');
+        }
+
+        function filterAssetsByStatus(status) {
+            const contentFrame = document.getElementById("contentFrame");
+
+            // Ensure the view_assets page is loaded first
+            if (!contentFrame.src.includes('view_assets.html')) {
+                loadPage('view_assets.html');
+            }
+            contentFrame.contentWindow.postMessage({ action: 'filterByStatus', status: status }, '*');
+        }
+
+        // --- Admin Password Modal Logic ---
+        adminPassForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            adminPassError.textContent = "";
+            if (adminPassInput.value === "051488") { // You can change this password
+                adminPassModal.classList.add("hidden");
+                adminPassInput.value = ""; // Clear password
+
+                // Show create form
+                loginForm.classList.remove("active");
+                loginForm.classList.add("hidden");
+                createForm.classList.remove("hidden");
+                createForm.classList.add("active");
+                toggleLink.textContent = "Back to Login";
+                setFormContainerHeight();
+            } else {
+                adminPassError.textContent = "Incorrect password.";
+            }
+        });
+
+        cancelAdminPass.addEventListener("click", () => adminPassModal.classList.add("hidden"));
+
+        async function loadUsers() {
+            try {
+                const res = await fetch(scriptURL + "?action=getUsernames");
+                const usernames = await res.json();
+                const userList = document.getElementById("user-list");
+                userList.innerHTML = ''; // Clear existing options
+                usernames.forEach(u => {
+                    const opt = document.createElement("option");
+                    opt.value = u;
+                    userList.appendChild(opt);
+                });
+            } catch (error) {
+                console.error("Failed to load users:", error);
+            }
+        }
+
+        loginForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            loginError.textContent = "";
+            loader.classList.remove("hidden");
+
+            try {
+                const formData = new FormData(loginForm);
+                const res = await fetch(scriptURL, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const result = await res.text();
+                if (result === "success") {
+                    const username = formData.get("User");
+                    sessionStorage.setItem("loggedInUser", username);
+                    finishLogin(username);
+                } else {
+                    loginError.textContent = "❌ Invalid username or password";
+                }
+            } catch (error) {
+                loginError.textContent = "❌ An error occurred. Please check your connection.";
+            } finally {
+                loader.classList.add("hidden");
+            }
+        });
+
+        createForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            createError.textContent = "";
+            createError.classList.remove("success");
+            loader.classList.remove("hidden");
+
+            try {
+                const formData = new FormData(createForm);
+                formData.append("UserType", "User");
+
+                const res = await fetch(scriptURL, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const result = await res.text();
+                if (result === "created") {
+                    createError.textContent = "✅ Account created! Redirecting to login...";
+                    createError.classList.add("success");
+                    createForm.reset();
+                    loadUsers(); // Refresh user list
+                    setTimeout(() => {
+                        toggleLink.click();
+                        createError.textContent = "";
+                        createError.classList.remove("success");
+                    }, 2000);
+                } else {
+                    createError.textContent = "⚠️ " + result;
+                }
+            } catch (error) {
+                createError.textContent = "❌ An error occurred. Please try again.";
+            } finally {
+                loader.classList.add("hidden");
+            }
+        });
+
+        function finishLogin(username) {
+            loginModal.classList.add("hidden");
+            mainContainer.classList.remove("hidden");
+            if (username === 'IT' || username === 'Batangas DC' || username === 'Batangas Head Office') {
+                welcomeMessage.textContent = `Welcome: ${username}`;
+            } else {
+                welcomeMessage.textContent = `Welcome: ${username} Branch`;
+            }
+            logoutButton.classList.remove("hidden");
+
+            // Load the initial page after login
+            loadPage('view_assets.html');
+
+            // Load sidebar stats now that user is logged in
+            loadSidebarStats();
+        }
+
+        async function loadSidebarStats() {
+            const loggedInUser = sessionStorage.getItem("loggedInUser");
+            if (!loggedInUser) return;
+
+            const typeList = document.getElementById('assetTypeStats');
+            const statusList = document.getElementById('assetStatusStats');
+
+            try {
+                // Only the 'IT' user gets global stats. All other users, including 'Batangas Head Office',
+                // get stats filtered by their specific branch.
+                let statsUrl = `${scriptURL}?action=getStats`;
+                if (loggedInUser !== 'IT') {
+                    statsUrl += `&branch=${encodeURIComponent(loggedInUser)}`;
+                }
+                const res = await fetch(statsUrl);
+                if (!res.ok) throw new Error('Failed to fetch stats');
+
+                const stats = await res.json();
+                console.debug('Sidebar stats response:', stats);
+
+                // Support multiple possible shapes returned by the backend (fallbacks)
+                const typesObj = stats.types || stats.type || stats.typeCounts || {};
+                const statusesObj = stats.statuses || stats.status || stats.statusCounts || stats.Statuses || {};
+
+                // Populate Type Stats
+                typeList.innerHTML = '';
+                const sortedTypes = Object.entries(typesObj || {}).filter(([k]) => k && String(k).trim() !== '').sort(([, a], [, b]) => b - a);
+
+                if (sortedTypes.length === 0) {
+                    typeList.innerHTML = '<li>No data found.</li>';
+                } else {
+                    const maxTypeCount = Math.max(...sortedTypes.map(([, count]) => count));
+                    for (const [type, count] of sortedTypes) {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'stat-bar-wrapper';
+                        wrapper.title = `Click to filter by ${type}`;
+
+                        const percentage = maxTypeCount > 0 ? (count / maxTypeCount) * 100 : 0;
+                        const bar = document.createElement('div');
+                        bar.className = 'stat-bar';
+                        bar.style.width = `${percentage}%`;
+
+                        wrapper.innerHTML = `
+                            <div class="stat-bar-details">
+                                <span class="stat-label">${type}</span>
+                                <span class="stat-value">${count}</span>
+                            </div>
+                            <div class="stat-bar-container"></div>`;
+                        wrapper.querySelector('.stat-bar-container').appendChild(bar);
+                        wrapper.addEventListener('click', () => filterAssetsByType(type));
+                        typeList.appendChild(wrapper);
+                    }
+                }
+
+                // Populate Status Stats
+                statusList.innerHTML = '';
+                // Build grouped status entries so display labels and counts can be customized
+                const groups = {}; // { displayLabel: { count: number, mappedStatuses: Set<string>, contributors: Array } }
+
+                for (const [rawStatus, cnt] of Object.entries(statusesObj || {})) {
+                    const key = String(rawStatus).trim();
+                    const low = key.toLowerCase();
+
+                    let displayLabel = key; // Default to the raw status if no rule matches
+                    let mappedStatus = key;
+
+                    // Check for the most specific cases first to ensure correct grouping.
+                    if (low.includes('work')) {
+                        displayLabel = 'Working';
+                        mappedStatus = 'Working';
+                    } else if (low.includes('defect')) { // This should be after the more specific 'defective - in used'
+                        displayLabel = 'Defective';
+                        mappedStatus = 'Defective';
+                    }
+
+                    if (!groups[displayLabel]) {
+                        groups[displayLabel] = { count: 0, mappedStatuses: new Set(), contributors: [] };
+                    }
+                    const numericCount = Number(cnt) || 0;
+                    groups[displayLabel].count += numericCount;
+                    groups[displayLabel].mappedStatuses.add(mappedStatus);
+                    groups[displayLabel].contributors.push({ rawStatus: key, mappedStatus, count: numericCount });
+                }
+
+                // Debug: show how groups were built
+                console.debug('Sidebar status groups:', groups);
+
+                // Convert groups to array and sort by count desc
+                const groupEntries = Object.entries(groups).sort(([, a], [, b]) => b.count - a.count);
+
+                if (groupEntries.length === 0) {
+                    statusList.innerHTML = '<div>No statuses found.</div>';
+                    console.warn('No status entries found in stats. Full stats object:', stats);
+                } else {
+                    const maxStatusCount = Math.max(...groupEntries.map(([, data]) => data.count));
+                    for (const [displayLabel, data] of groupEntries) {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'stat-bar-wrapper';
+                        wrapper.title = `Click to filter by ${displayLabel}`;
+
+                        const percentage = maxStatusCount > 0 ? (data.count / maxStatusCount) * 100 : 0;
+                        const bar = document.createElement('div');
+                        bar.className = 'stat-bar';
+                        bar.style.width = `${percentage}%`;
+
+                        // Get the statuses to filter by. For "Defective", include both.
+                        let statusesToFilter = Array.from(data.mappedStatuses);
+                        if (displayLabel === 'Defective') {
+                            statusesToFilter = ['Defective', 'Defective - In Used'];
+                        }
+
+                        wrapper.innerHTML = `
+                            <div class="stat-bar-details">
+                                <span class="stat-label">${displayLabel}</span>
+                                <span class="stat-value">${data.count}</span>
+                            </div>
+                            <div class="stat-bar-container"></div>`;
+                        wrapper.querySelector('.stat-bar-container').appendChild(bar);
+
+                        wrapper.addEventListener('click', () => {
+                            const contentFrame = document.getElementById('contentFrame');
+                            const viewAssetsLink = null; // No link to make active
+                            if (!contentFrame.src.includes('view_assets.html')) {
+                                loadPage('view_assets.html', viewAssetsLink);
+                            }
+                            contentFrame.contentWindow.postMessage({ action: 'filterByStatus', statuses: statusesToFilter }, '*');
+                        });
+                        statusList.appendChild(wrapper);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to load stats:", error);
+                typeList.innerHTML = '<li>Error loading stats.</li>';
+                statusList.innerHTML = '<li>Error loading stats.</li>';
+            }
+        }
+
+        // --- Initialization ---
+        window.addEventListener('load', () => {
+            const loggedInUser = sessionStorage.getItem("loggedInUser");
+            if (loggedInUser) {
+                finishLogin(loggedInUser);
+            } else {
+                loginModal.classList.remove("hidden");
+                setFormContainerHeight();
+                loadUsers();
+            }
+        });
+
+        // --- Logout Logic ---
+        logoutButton.addEventListener("click", () => {
+            sessionStorage.removeItem("loggedInUser");
+            // Redirect to the start page instead of reloading, which is more reliable in .exe wrappers.
+            window.location.href = "index.html";
+        });
+    </script>
+    <script>
+        // Listen for messages from the iframe
+        window.addEventListener('message', (event) => {
+            if (event.data === 'refreshStats') {
+                loadSidebarStats();
+            }
+            if (typeof event.data === 'object' && event.data.action === 'openPrintModal') {
+                document.getElementById('printFrame').src = event.data.url;
+                document.getElementById('printModal').classList.remove('hidden');
+            }
+        });
+        document.getElementById('closePrintModalBtn').addEventListener('click', () => {
+            document.getElementById('printModal').classList.add('hidden');
+        });
+    </script>
+
+</body>
+
+</html>

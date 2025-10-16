@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Asset Inventory — Card View</title>
+
+    <!-- Inter & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Barcode+39+Extended+Text&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet" />
+
+    <style>
+        :root {
+            --bg-1: linear-gradient(135deg, rgba(10, 30, 60, 0.06), rgba(240, 248, 255, 0.04));
+            --glass-bg: rgba(255, 255, 255, 0.06);
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.14);
+            --accent: #4da3ff;
+            --accent-600: #298dfc;
+            --glass: rgba(255, 255, 255, 0.54);
+            --muted: #64748b;
+            --text: #eaf2ff;
+            --glass-shadow: 0 8px 30px rgba(11, 30, 60, 0.18);
+            --glass-radius: 14px;
+            --glass-padding: 18px;
+        }
+
+        /* Page background */
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            background: linear-gradient(120deg, #e6f7fb 0%, #f6fbff 30%, #eef9ff 60%, #f2fbff 100%);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .page-wrap {
+            height: 100%;
+            box-sizing: border-box;
+            overflow: auto;
+            padding: 18px;
+        }
+
+        /* Header card */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--glass);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.36);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
+            position: -webkit-sticky;
+            /* For Safari */
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .top-left {
+            font-weight: 700;
+            color: var(--accent-600);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .top-left i {
+            background: linear-gradient(180deg, rgba(77, 163, 255, 0.12), rgba(77, 163, 255, 0.06));
+            padding: 8px;
+            border-radius: 10px;
+            color: var(--accent-600);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-600));
+            color: #fff;
+        }
+
+        .btn-ghost {
+            background: rgba(77, 163, 255, 0.12);
+            color: var(--accent-600);
+            border: 1px solid rgba(77, 163, 255, 0.12);
+        }
+
+        .btn-neutral {
+            background: #fff;
+            color: #233;
+            border: 1px solid rgba(20, 30, 40, 0.05);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .search-input {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(20, 30, 40, 0.06);
+            min-width: 240px;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            box-shadow: 0 6px 20px rgba(77, 163, 255, 0.08);
+            border-color: var(--accent);
+        }
+
+        /* --- Row & Column Layout --- */
+        .asset-table-header {
+            display: flex;
+            padding: 10px 14px;
+            background: rgba(77, 163, 255, 0.08);
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--accent-600);
+            margin-top: 18px;
+            gap: 12px;
+            /* Match the gap in asset-row for alignment */
+            border-bottom: 1px solid rgba(77, 163, 255, 0.12);
+        }
+
+        /* Reset font for the 'Asset Code' header to match other headers */
+        .asset-table-header .col-code {
+            font-family: inherit;
+            font-size: inherit;
+            color: inherit;
+            line-height: inherit;
+        }
+
+        .asset-table-body {
+            margin-top: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .asset-row {
+            background: rgba(255, 255, 255, 0.86);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.36);
+            padding: 10px 14px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: transform .18s ease, box-shadow .18s;
+        }
+
+        .asset-row:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(30, 40, 60, 0.08);
+        }
+
+        .asset-cell {
+            font-size: 13px;
+            color: #344;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .col-thumb {
+            flex: 0 0 48px;
+        }
+
+        .col-code {
+            flex: 0 0 250px;
+            font-family: 'Libre Barcode 39 Extended Text', cursive;
+            font-size: 26px;
+            color: #034b97;
+        }
+
+        .col-location {
+            flex: 1 1 180px;
+            /* Increased base width */
+            min-width: 150px;
+            /* Increased minimum width */
+        }
+
+        .col-type {
+            flex: 1 1 100px;
+            min-width: 90px;
+        }
+
+        .col-details {
+            flex: 2 1 220px;
+            /* Increased base width */
+            min-width: 180px;
+            /* Increased minimum width */
+            white-space: pre-wrap;
+        }
+
+        .col-serial {
+            flex: 1 1 150px;
+            /* Increased base width */
+            min-width: 120px;
+            /* Increased minimum width */
+        }
+
+        .col-status {
+            flex: 0 0 160px;
+            /* Increased fixed width */
+        }
+
+        .col-actions {
+            flex: 0 0 70px;
+            /* Slightly reduced to give space to others */
+            text-align: right;
+        }
+
+        .thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            object-fit: cover;
+            background: #f3f6fb;
+        }
+
+        /* status pill */
+        .status-pill {
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 13px;
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .status-working {
+            background: rgba(45, 181, 73, 0.1);
+            color: #1f7a2a;
+            border: 1px solid rgba(45, 181, 73, 0.09);
+        }
+
+        .status-defective-used {
+            background: rgba(255, 107, 107, 0.08);
+            color: #c33;
+            border: 1px solid rgba(255, 107, 107, 0.08);
+        }
+
+        .status-defective {
+            background: rgba(220, 53, 69, 0.08);
+            color: #9b1f2a;
+            border: 1px solid rgba(220, 53, 69, 0.08);
+        }
+
+        /* action icons */
+        .action-icons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .edit-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 8px;
+            transition: background .15s;
+        }
+
+        .edit-btn:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        /* Pagination area */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--glass);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.36);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+            position: sticky;
+            bottom: 18px;
+            z-index: 50;
+            backdrop-filter: blur(10px);
+        }
+
+        .page-info {}
+
+        .page-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Modals — glass style */
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1200;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            padding: 18px;
+        }
+
+        .modal .modal-content {
+            width: 100%;
+            max-width: 760px;
+            background: rgba(255, 255, 255, 0.92);
+            /* Increased opacity for better readability */
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.36);
+            padding: 18px;
+            box-shadow: 0 10px 36px rgba(31, 38, 135, 0.12);
+            position: relative;
+        }
+
+        .modal h3 {
+            margin: 0 0 8px;
+            color: var(--accent-600);
+            font-size: 18px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .form-grid input,
+        .form-grid select,
+        .form-grid textarea {
+            padding: 10px;
+            border-radius: 9px;
+            border: 1px solid #dce5f2;
+            /* A light, clean border */
+            width: 100%;
+            box-sizing: border-box;
+            background: #fff;
+            /* Solid white for better contrast */
+            box-shadow: 0 2px 5px rgba(30, 40, 60, 0.04);
+            /* Subtle shadow for 3D effect */
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+
+        .form-grid input:focus,
+        .form-grid select:focus,
+        .form-grid textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 4px 12px rgba(77, 163, 255, 0.15);
+            /* A more prominent shadow on focus */
+        }
+
+        .readonly-select {
+            pointer-events: none;
+            background-color: #e9ecef !important;
+            opacity: 0.7;
+        }
+
+        .modal .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 14px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* status modal & side notification */
+        .status-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1300;
+        }
+
+        .status-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 380px;
+            width: 90%;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        }
+
+        .side-notification {
+            position: fixed;
+            top: 88px;
+            left: -420px;
+            min-width: 320px;
+            max-width: 380px;
+            background: white;
+            padding: 14px 18px;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+            transition: left .45s cubic-bezier(.25, .46, .45, .94);
+            z-index: 1400;
+            border-left: 5px solid #28a745;
+        }
+
+        .side-notification.show {
+            left: 0;
+        }
+
+        /* responsive */
+        @media (max-width:760px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-input {
+                min-width: 140px;
+                width: 100%;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-wrap">
+        <div class="top-bar">
+            <div class="top-left">
+                <i class="fa-solid fa-laptop-code"></i>
+                <div>
+                    <div>I.T. Asset Inventory Record</div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:4px; font-weight: 500;">Manage devices •
+                        Barcodes • Photos • Status</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <select id="branchFilterSelect" class="search-input hidden"
+                    style="min-width: 180px; background-color: #fff;"></select>
+                <button id="refreshBtn" class="btn btn-ghost" title="Refresh Data"><i
+                        class="fa-solid fa-sync"></i></button>
+                <input id="searchInput" class="search-input" placeholder="Search assets..." />
+                <button id="showAllBtn" class="btn btn-ghost" title="Reset Filter"><i
+                        class="fa-solid fa-arrows-rotate"></i> Show All</button>
+                <button id="printBtn" class="btn btn-ghost" title="Print Asset Codes"><i class="fa-solid fa-print"></i>
+                    Print</button>
+                <button id="addAssetBtn" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Asset</button>
+            </div>
+        </div>
+
+        <!-- Table Header -->
+        <div class="asset-table-header hidden" id="assetTableHeader">
+            <div class="asset-cell col-thumb"></div>
+            <div class="asset-cell col-code">Asset Code</div>
+            <div class="asset-cell col-location">Branch / Dept</div>
+            <div class="asset-cell col-type">Type</div>
+            <div class="asset-cell col-details">Details</div>
+            <div class="asset-cell col-serial">Serial #</div>
+            <div class="asset-cell col-status">Status</div>
+            <div class="asset-cell col-actions">Actions</div>
+        </div>
+
+        <!-- Grid of cards -->
+        <div id="assetGrid" class="asset-table-body" aria-live="polite">
+            <div style="padding:22px;background:var(--glass);border-radius:12px; margin-top: 10px;">Loading assets...
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="paginationContainer" class="pagination" style="display:none;">
+            <div class="page-info" id="pageInfo">Showing 0-0 of 0 assets</div>
+            <div class="page-controls">
+                <select id="rowsPerPageSelect" class="search-input" style="min-width: 120px; padding: 8px 10px;">
+                    <option value="25">25 per page</option>
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                    <option value="250">250 per page</option>
+                </select>
+                <button id="prevBtn" class="btn btn-neutral"><i class="fa-solid fa-chevron-left"></i></button>
+                <button id="nextBtn" class="btn btn-neutral"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Asset Modal (unchanged IDs so existing JS continues to work) -->
+    <div id="updateModal" class="modal">
+        <div class="modal-content">
+            <div class="loader-overlay"
+                style="display:none; position:absolute; inset:0; border-radius:12px; background: rgba(255,255,255,0.6); backdrop-filter: blur(3px); align-items:center; justify-content:center; z-index:200;">
+                <div
+                    style="width:42px;height:42px;border-radius:50%;border:4px solid #f3f3f3;border-top-color:var(--accent); animation:spin 1s linear infinite;">
+                </div>
+            </div>
+            <h3><i class="fa-solid fa-pen-to-square"></i> Update Asset</h3>
+            <form id="updateForm">
+                <input type="hidden" name="action" value="updateAsset" />
+                <div class="form-grid">
+                    <div><label>Asset Code</label><input name="AssetCode" readonly /></div>
+                    <div><label>Region</label><input name="Region" readonly /></div>
+
+                    <div>
+                        <label>Branch</label>
+                        <select name="Branch" id="updateBranchSelect" class="select" required></select>
+                    </div>
+                    <div>
+                        <label>Department</label>
+                        <select name="Department" id="updateDeptSelect" class="select" required></select>
+                    </div>
+
+                    <div><label>Type</label>
+                        <select name="Type" required>
+                            <option value="" disabled>Select Asset Type</option>
+                            <option>Computer</option>
+                            <option>Monitor</option>
+                            <option>Keyboard</option>
+                            <option>Mouse</option>
+                            <option>Mouse Pad</option>
+                            <option>Storage</option>
+                            <option>Regulator</option>
+                            <option>Speaker</option>
+                            <option>PDA</option>
+                            <option>Printer</option>
+                            <option>Scanner</option>
+                            <option>Biometric</option>
+                            <option>CCTV</option>
+                            <option>Flash Drive</option>
+                            <option>Modem Router</option>
+                            <option>Network Switch</option>
+                            <option>Tools</option>
+                        </select>
+                    </div>
+                    <div><label>Brand</label><input name="Brand" required /></div>
+
+                    <div><label>Model</label><input name="Model" required /></div>
+                    <div><label>Specification</label><textarea id="updateSpecsTextarea" name="Specs" rows="3"
+                            required></textarea></div>
+
+                    <div><label>Serial #</label><input name="SerialNo" required /></div>
+                    <div><label>Status</label>
+                        <select name="Remarks" required>
+                            <option value="" disabled>Select Asset Status</option>
+                            <option>Working</option>
+                            <option>Defective - In Used</option>
+                            <option>Defective</option>
+                        </select>
+                    </div>
+
+                    <div><label>Photo (Leave blank to keep existing)</label><input type="file" name="Photo"
+                            accept="image/*" /></div>
+                    <div><label>Remarks</label><textarea name="TextRemarks" rows="2"></textarea></div>
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-ghost" onclick="closeUpdateModal()">Cancel</button>
+                    <button type="button" id="transferBtn" class="btn btn-neutral"><i
+                            class="fa-solid fa-right-left"></i> Transfer</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Asset Modal -->
+    <div id="addAssetModal" class="modal">
+        <div class="modal-content">
+            <div class="loader-overlay"
+                style="display:none; position:absolute; inset:0; border-radius:12px; background: rgba(255,255,255,0.6); backdrop-filter: blur(3px); align-items:center; justify-content:center; z-index:200;">
+                <div
+                    style="width:42px;height:42px;border-radius:50%;border:4px solid #f3f3f3;border-top-color:var(--accent); animation:spin 1s linear infinite;">
+                </div>
+            </div>
+            <h3><i class="fa-solid fa-plus"></i> Add Asset <span id="dateTimeDisplay"
+                    style="float:right;font-weight:600;color:var(--muted);font-size:13px;"></span></h3>
+
+            <form id="assetForm">
+                <input type="hidden" name="action" value="addAsset" />
+                <div class="form-grid" style="margin-top:12px;">
+                    <div><label>Region</label><input name="Region" value="Batangas" readonly /></div>
+                    <div><label>Asset Code</label><input id="assetCode" name="AssetCode" readonly /></div>
+
+                    <div>
+                        <label>Branch</label>
+                        <select id="branchSelect" name="Branch" required>
+                            <option value="" disabled selected>Select Branch</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Department</label>
+                        <select id="deptSelect" name="Department" required>
+                            <option value="" disabled selected>Select a Branch first</option>
+                        </select>
+                    </div>
+
+                    <div><label>Type</label>
+                        <select name="Type" required>
+                            <option value="" disabled selected>Select Asset Type</option>
+                            <option>Computer</option>
+                            <option>Monitor</option>
+                            <option>Keyboard</option>
+                            <option>Mouse</option>
+                            <option>Mouse Pad</option>
+                            <option>Storage</option>
+                            <option>Regulator</option>
+                            <option>Speaker</option>
+                            <option>PDA</option>
+                            <option>Printer</option>
+                            <option>Scanner</option>
+                            <option>Biometric</option>
+                            <option>CCTV</option>
+                            <option>Flash Drive</option>
+                            <option>Modem Router</option>
+                            <option>Network Switch</option>
+                            <option>Tools</option>
+                        </select>
+                    </div>
+
+                    <div><label>Brand</label><input name="Brand" placeholder="e.g., Hikvision..." required /></div>
+                    <div><label>Model</label><input name="Model" required /></div>
+                    <div><label>Serial/Part #</label><input name="SerialNo" required /></div>
+                    <div style="grid-column: 1 / -1;"><label>Specification</label><textarea id="specsTextarea"
+                            name="Specs" rows="3" required></textarea></div>
+
+                    <div><label>Status</label>
+                        <select name="Remarks" required>
+                            <option value="" disabled selected>Select Asset Status</option>
+                            <option>Working</option>
+                            <option>Defective - In Used</option>
+                            <option>Defective</option>
+                        </select>
+                    </div>
+
+                    <div><label>Photo</label><input id="assetPhoto" name="Photo" type="file" accept="image/*" /></div>
+                    <div style="grid-column: 1 / -1;"><label>Remarks</label><textarea name="TextRemarks" rows="2"
+                            placeholder="Additional notes..."></textarea></div>
+                </div>
+            </form>
+
+            <div class="modal-buttons">
+                <button type="button" id="cancelAddAssetBtn" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="assetForm">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Modal -->
+    <div id="statusModal" class="status-modal">
+        <div class="status-card" id="modalContent"></div>
+    </div>
+
+    <!-- Image Viewer Modal -->
+    <div id="imageViewerModal" class="modal" style="cursor: zoom-out;" onclick="closeImageViewer()">
+        <img id="fullSizeImage"
+            style="max-width: 95vw; max-height: 95vh; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    </div>
+
+    <!-- Keep original script logic unchanged — IDs preserved so everything continues to work -->
+    <script>
+        /* ---------- BEGIN: Original app script (kept intact) ---------- */
+        const scriptURL = "https://script.google.com/macros/s/AKfycbywN8XyFh7d7ph9bAv35V47CX6EOJK7eHg_w8-5R4Pz2MwBDmbXq43mTUb0gtcTiDr0/exec";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const userBranch = urlParams.get('branch');
+
+        let allAssets = [];
+        let filteredAssets = [];
+        let currentPage = 1;
+        let rowsPerPage = 25;
+        let activeTypeFilter = null;
+        let activeStatusFilter = null;
+        let activeBranchFilter = null;
+
+        // DOM refs
+        const assetGrid = document.getElementById('assetGrid');
+        const paginationContainer = document.getElementById('paginationContainer');
+        const pageInfo = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const rowsPerPageSelect = document.getElementById('rowsPerPageSelect');
+        const searchInput = document.getElementById('searchInput');
+        const loaderOverlayAdd = document.querySelector('#addAssetModal .loader-overlay');
+        const loaderOverlayUpdate = document.querySelector('#updateModal .loader-overlay');
+        const branchFilterSelect = document.getElementById('branchFilterSelect');
+        const assetTableHeader = document.getElementById('assetTableHeader');
+        const imageViewerModal = document.getElementById('imageViewerModal');
+        const fullSizeImage = document.getElementById('fullSizeImage');
+
+
+        function checkForStatusChanges(oldAssets, newAssets) {
+            if (userBranch !== 'IT' || !oldAssets || oldAssets.length === 0) {
+                return;
+            }
+
+            // Create string representations of the asset lists (ignoring timestamps) for comparison.
+            const oldAssetsString = JSON.stringify(oldAssets.map(asset => asset.slice(1)));
+            const newAssetsString = JSON.stringify(newAssets.map(asset => asset.slice(1)));
+
+            // If the strings are different, it means at least one asset has been added, removed, or updated.
+            if (oldAssetsString !== newAssetsString) {
+                showSideNotification(
+                    "Inventory Updated",
+                    "Asset records have been updated. The view is now current."
+                );
+            }
+        }
+
+        async function fetchAssets(isInitialLoad = false) {
+            try {
+                const response = await fetch(scriptURL + "?action=getAssets");
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const oldAssetsCopy = [...allAssets];
+                const data = await response.json();
+                allAssets = (data || []).reverse(); // Reverse to show newest first
+                if (isInitialLoad) {
+                    const baseData = (userBranch && userBranch !== 'IT') ? allAssets.filter(row => row[3] === userBranch) : allAssets;
+                    filteredAssets = baseData;
+                    if (userBranch === 'IT') {
+                        populateBranchFilter();
+                        document.getElementById('branchFilterSelect').classList.remove('hidden');
+                    }
+                } else {
+                    applyAllFilters(false);
+                }
+                if (!isInitialLoad) checkForStatusChanges(oldAssetsCopy, allAssets);
+                renderPage(currentPage || 1, isInitialLoad);
+            } catch (error) {
+                if (isInitialLoad) {
+                    assetGrid.innerHTML = `<div style="padding:22px;background:var(--glass);border-radius:12px; margin-top: 10px;">Error loading assets: ${error.message}</div>`;
+                } else {
+                    console.error("Auto-refresh failed:", error);
+                }
+            } finally {
+                if (isInitialLoad) {
+                    // Handled by renderPage
+                }
+            }
+        }
+
+        function renderPage(page, isInitialLoad = false) {
+            currentPage = page;
+            assetGrid.innerHTML = '';
+            const start = (page - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const pageItems = filteredAssets.slice(start, end);
+
+            if (pageItems.length === 0) {
+                assetGrid.innerHTML = `<div style="padding:22px;background:var(--glass);border-radius:12px; margin-top: 10px;">No assets found.</div>`;
+                assetTableHeader.classList.add('hidden');
+                paginationContainer.style.display = 'none';
+            } else {
+                assetTableHeader.classList.remove('hidden');
+                paginationContainer.style.display = 'flex';
+            }
+
+            pageItems.forEach(row => {
+                const assetCode = row[1] || '';
+                const branch = row[3] || '';
+                const dept = row[4] || '';
+                const type = row[5] || '';
+                const brand = row[6] || '';
+                const model = row[7] || '';
+                const specs = row[8] || '';
+                const serial = row[9] || '';
+                const status = row[10] || '';
+                const photoUrl = row[11] || '';
+                const textRemarks = row[12] || '';
+
+                const rowEl = document.createElement('div');
+                rowEl.className = 'asset-row';
+
+                const thumbImg = document.createElement('img');
+                let fullImageUrl = 'https://i.imgur.com/9bZQb7G.png'; // Default placeholder
+
+                if (photoUrl) {
+                    const m = photoUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+                    if (m && m[1]) {
+                        thumbImg.src = `https://drive.google.com/thumbnail?id=${m[1]}`;
+                        fullImageUrl = `https://drive.google.com/thumbnail?id=${m[1]}&sz=w1024`;
+                    } else {
+                        thumbImg.src = photoUrl;
+                        fullImageUrl = photoUrl;
+                    }
+                } else {
+                    thumbImg.src = 'https://i.imgur.com/9bZQb7G.png'; // subtle placeholder
+                }
+                thumbImg.className = 'thumb';
+                thumbImg.style.cursor = 'zoom-in';
+                const thumbCell = `<div class="asset-cell col-thumb">${thumbImg.outerHTML}</div>`;
+
+                const codeCell = `<div class="asset-cell col-code" title="${assetCode}">*${assetCode}*</div>`;
+                const locationCell = `<div class="asset-cell col-location" title="${branch} / ${dept}">${branch}<br><small style="color:var(--muted);">${dept}</small></div>`;
+                const typeCell = `<div class="asset-cell col-type" title="${type}">${type}</div>`;
+                const detailsCell = `<div class="asset-cell col-details" title="${brand} ${model}\n${specs}">${brand}<br>${model}<br><small style="color:var(--muted);">${specs}</small></div>`;
+                const serialCell = `<div class="asset-cell col-serial" title="${serial}">${serial}</div>`;
+
+                const statusPill = document.createElement('div');
+                statusPill.className = 'status-pill';
+                if (status === 'Working') statusPill.classList.add('status-working');
+                else if (status === 'Defective - In Used') statusPill.classList.add('status-defective-used');
+                else if (status === 'Defective') statusPill.classList.add('status-defective');
+                if (textRemarks) {
+                    statusPill.title = textRemarks;
+                }
+                statusPill.innerHTML = `<i class="fa-solid fa-circle" style="font-size:8px"></i><span style="font-weight:700">${status || 'Unknown'}</span>`;
+                const statusCell = `<div class="asset-cell col-status">${statusPill.outerHTML}</div>`;
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-btn';
+                editBtn.innerHTML = `<i class="fa-solid fa-pen-to-square"></i>`;
+                editBtn.title = 'Click to Update Asset';
+
+                const printBtn = document.createElement('button');
+                printBtn.className = 'edit-btn'; // Reuse same style as edit button
+                printBtn.innerHTML = `<i class="fa-solid fa-print"></i>`;
+                printBtn.title = 'Print this asset code';
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'action-icons';
+                actionsDiv.appendChild(editBtn);
+                actionsDiv.appendChild(printBtn);
+
+                const actionsCell = `<div class="asset-cell col-actions">${actionsDiv.innerHTML}</div>`;
+
+                rowEl.innerHTML = thumbCell + codeCell + locationCell + typeCell + detailsCell + serialCell + statusCell + actionsCell;
+
+                // Add double-click to copy functionality for the asset code
+                rowEl.querySelector('.col-code').addEventListener('dblclick', () => {
+                    navigator.clipboard.writeText(assetCode).then(() => {
+                        showSideNotification("Copied!", `Asset code <strong>${assetCode}</strong> copied to clipboard.`);
+                    }).catch(err => {
+                        console.error('Failed to copy asset code: ', err);
+                        showStatusModal("error", "Copy Failed", "Could not copy text to clipboard.");
+                    });
+                });
+
+                rowEl.querySelector('.thumb').addEventListener('click', (e) => { e.stopPropagation(); openImageViewer(fullImageUrl); });
+                rowEl.querySelector('.edit-btn').addEventListener('click', () => openUpdateModal(row));
+                rowEl.querySelector('.edit-btn:nth-child(2)').addEventListener('click', () => {
+                    const encoded = encodeURIComponent(JSON.stringify([assetCode]));
+                    const printUrl = `print.html?codes=${encoded}&isModal=true`;
+                    window.parent.postMessage({ action: 'openPrintModal', url: printUrl }, '*');
+                });
+                assetGrid.appendChild(rowEl);
+            });
+
+            updatePaginationControls();
+        }
+
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(filteredAssets.length / rowsPerPage);
+
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+
+            const startItem = filteredAssets.length > 0 ? (currentPage - 1) * rowsPerPage + 1 : 0;
+            const endItem = Math.min(currentPage * rowsPerPage, filteredAssets.length);
+
+            pageInfo.textContent = `Showing ${startItem}-${endItem} of ${filteredAssets.length} assets`;
+        }
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentPage > 1) renderPage(currentPage - 1);
+        });
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredAssets.length / rowsPerPage);
+            if (currentPage < totalPages) renderPage(currentPage + 1);
+        });
+        document.getElementById('rowsPerPageSelect').addEventListener('change', function () {
+            rowsPerPage = parseInt(this.value, 10);
+            renderPage(1);
+        });
+        document.getElementById('searchInput').addEventListener('keyup', () => applySearchFilter());
+
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            const icon = document.querySelector('#refreshBtn i');
+            icon.classList.add('fa-spin'); // Add spinning animation
+            fetchAssets().finally(() => {
+                // Remove spin after a short delay to ensure user sees it
+                setTimeout(() => {
+                    icon.classList.remove('fa-spin');
+                }, 500);
+            });
+        });
+
+        function applySearchFilter(resetPage = true) { applyAllFilters(resetPage); }
+        function applyAllFilters(resetPage = true) {
+            const searchInput = document.getElementById('searchInput');
+            const searchTerm = searchInput.value.toUpperCase();
+            let currentFilteredData = (userBranch && userBranch !== 'IT') ? allAssets.filter(row => row[3] === userBranch) : allAssets;
+
+            if (userBranch === 'IT' && activeBranchFilter) currentFilteredData = currentFilteredData.filter(row => row[3] === activeBranchFilter); // This line is correct
+            if (activeTypeFilter) currentFilteredData = currentFilteredData.filter(row => row[5] === activeTypeFilter);
+            if (activeStatusFilter && activeStatusFilter.length > 0) currentFilteredData = currentFilteredData.filter(row => activeStatusFilter.includes(row[10]));
+            if (searchTerm) {
+                currentFilteredData = currentFilteredData.filter(row => {
+                    return row.slice(1).some(cell => String(cell).toUpperCase().includes(searchTerm));
+                });
+            }
+            filteredAssets = currentFilteredData;
+            renderPage(resetPage ? 1 : (currentPage || 1));
+        }
+
+        function openImageViewer(imageUrl) {
+            fullSizeImage.src = imageUrl;
+            imageViewerModal.style.display = 'flex';
+        }
+
+        function closeImageViewer() {
+            imageViewerModal.style.display = 'none';
+        }
+
+        function openUpdateModal(rowData) {
+            const form = document.getElementById('updateForm');
+            form.reset();
+            // Reset transfer button state
+            document.getElementById('transferBtn').textContent = 'Transfer';
+            document.getElementById('transferBtn').onclick = handleTransferClick;
+
+            form.AssetCode.value = rowData[1];
+            form.Region.value = rowData[2];
+            form.Brand.value = rowData[6]; // Corrected from original
+            form.Type.value = rowData[5];
+            form.Model.value = rowData[7];
+            form.Specs.value = rowData[8];
+            form.SerialNo.value = rowData[9];
+            form.Remarks.value = rowData[10] || "";
+            form.TextRemarks.value = rowData[12] || "";
+
+            // Populate and set branch/dept dropdowns
+            populateUpdateDropdowns(rowData[3], rowData[4]);
+
+            document.getElementById('updateModal').style.display = 'flex';
+            autoSizeTextarea(document.getElementById('updateSpecsTextarea'));
+        }
+
+        function handleTransferClick() {
+            const branchSelect = document.getElementById('updateBranchSelect');
+            const deptSelect = document.getElementById('updateDeptSelect');
+            const transferBtn = document.getElementById('transferBtn');
+
+            branchSelect.classList.remove('readonly-select');
+            deptSelect.classList.remove('readonly-select');
+
+            transferBtn.innerHTML = `<i class="fa-solid fa-check"></i> Ready to Transfer`;
+            transferBtn.onclick = null; // Prevent re-clicking
+        }
+
+        async function populateUpdateDropdowns(currentBranch, currentDept) {
+            const branchSelect = document.getElementById('updateBranchSelect');
+            const deptSelect = document.getElementById('updateDeptSelect');
+
+            // Initially disable and mark as readonly
+            branchSelect.classList.add('readonly-select');
+            deptSelect.classList.add('readonly-select');
+
+            try {
+                const res = await fetch(scriptURL + "?action=getDropdowns");
+                const data = await res.json();
+
+                branchSelect.innerHTML = ''; // Clear previous options
+                data.branches.forEach(b => {
+                    let opt = new Option(b, b);
+                    branchSelect.add(opt);
+                });
+
+                branchSelect.value = currentBranch;
+                // Manually trigger change to populate departments
+                updateDepartmentsForBranch(currentBranch, deptSelect, currentDept);
+            } catch (err) {
+                console.error('Failed to populate update modal dropdowns:', err);
+            }
+        }
+
+        document.getElementById('updateForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const loader = loaderOverlayUpdate;
+            loader.style.display = 'flex';
+            try {
+                const form = this;
+
+                // Temporarily enable the dropdowns to ensure their values are submitted
+                document.getElementById('updateBranchSelect').classList.remove('readonly-select');
+                document.getElementById('updateDeptSelect').classList.remove('readonly-select');
+
+                const formData = new FormData(e.target);
+                const photoFile = e.target.querySelector('[name="Photo"]').files[0];
+                if (photoFile) formData.append('photoData', await toBase64(photoFile));
+                const response = await fetch(scriptURL, { method: 'POST', body: formData });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Update failed. The server returned an error.');
+                }
+                const department = formData.get('Department');
+                const newStatus = formData.get('Remarks');
+                await response.text();
+                closeUpdateModal();
+                fetchAssets();
+                window.parent.postMessage('refreshStats', '*');
+                showSideNotification("Status Updated!", `${department} asset status has been updated to: <strong>${newStatus}</strong>.`);
+            } catch (error) {
+                showStatusModal("error", "Update Error", error.message);
+            } finally {
+                loader.style.display = 'none';
+            }
+        });
+
+        function autoSizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
+        }
+        document.getElementById('updateSpecsTextarea').addEventListener('input', function () { autoSizeTextarea(this); });
+
+        // Add asset modal logic
+        const addAssetModal = document.getElementById('addAssetModal');
+        const addAssetBtn = document.getElementById('addAssetBtn');
+        const cancelAddAssetBtn = document.getElementById('cancelAddAssetBtn'); // This ID is different in the new HTML
+        const assetForm = document.getElementById('assetForm');
+        const specsTextarea = document.getElementById('specsTextarea');
+
+        function openAddAssetModal() {
+            setDateTime();
+            generateAssetCode();
+            loadDropdowns();
+            addAssetModal.style.display = 'flex';
+        }
+        document.getElementById('addAssetBtn').addEventListener('click', openAddAssetModal);
+        cancelAddAssetBtn.addEventListener('click', closeAddAssetModal);
+
+        function setDateTime() {
+            const now = new Date();
+            const date = now.toLocaleDateString('en-PH');
+            const time = now.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true });
+            document.getElementById("dateTimeDisplay").textContent = `${date} ${time}`;
+        }
+
+        async function generateAssetCode() {
+            try {
+                const res = await fetch(scriptURL + "?action=getLastCode");
+                const lastCode = await res.text();
+                let nextNumber = ("00000" + (parseInt(lastCode) + 1)).slice(-5);
+                document.getElementById("assetCode").value = `BAT-2025-${nextNumber}`;
+            } catch (err) {
+                console.warn('generateAssetCode error:', err);
+                document.getElementById("assetCode").value = `BAT-2025-XXXXX`;
+            }
+        }
+
+        async function loadDropdowns() {
+            try {
+                const res = await fetch(scriptURL + "?action=getDropdowns");
+                const data = await res.json();
+                let branchSelect = document.getElementById("branchSelect");
+                branchSelect.innerHTML = '<option value="" disabled selected>Select Branch</option>'; // Corrected from original
+                data.branches.forEach(b => {
+                    let opt = document.createElement("option");
+                    opt.value = b;
+                    opt.textContent = b;
+                    branchSelect.appendChild(opt);
+                });
+
+                if (userBranch && userBranch !== 'IT') {
+                    branchSelect.value = userBranch;
+                    branchSelect.dispatchEvent(new Event('change'));
+                    if (userBranch !== 'Batangas Head Office') branchSelect.classList.add('readonly-select'); // This class needs to be defined
+                }
+
+                if (userBranch === 'IT') {
+                    branchFilterSelect.classList.remove('hidden');
+                    branchFilterSelect.innerHTML = '<option value="">All Branches</option>';
+                    data.branches.forEach(b => {
+                        const opt = document.createElement('option'); opt.value = b; opt.textContent = b; branchFilterSelect.appendChild(opt);
+                    });
+                    activeBranchFilter = '';
+                }
+            } catch (err) {
+                console.error('loadDropdowns error', err);
+            }
+        }
+
+        document.getElementById('updateBranchSelect').addEventListener('change', function () {
+            updateDepartmentsForBranch(this.value, document.getElementById('updateDeptSelect'));
+        });
+
+        document.getElementById("branchSelect").addEventListener("change", e => {
+            const selectedBranch = e.target.value;
+            const deptSelect = document.getElementById("deptSelect");
+            deptSelect.innerHTML = "";
+            deptSelect.readOnly = false;
+            deptSelect.disabled = false;
+            const otherBranches = ["Balayan", "Batangas 1", "Batangas 2", "Bauan", "Lemery", "Lipa 1", "Lipa 2", "Malvar", "Nasugbu", "Rosario", "San Jose", "San Juan", "Sto Tomas", "Talisay"];
+            updateDepartmentsForBranch(selectedBranch, deptSelect);
+        });
+
+        function updateDepartmentsForBranch(branch, deptSelectElement, selectedDept = null) {
+            deptSelectElement.innerHTML = ""; // Clear existing options
+            deptSelectElement.readOnly = false;
+            deptSelectElement.disabled = false;
+
+            const otherBranches = ["Balayan", "Batangas 1", "Batangas 2", "Bauan", "Lemery", "Lipa 1", "Lipa 2", "Malvar", "Nasugbu", "Rosario", "San Jose", "San Juan", "Sto Tomas", "Talisay"];
+            const headOfficeDepts = ["HR Dept", "Admin Dept", "Finance Dept", "CSR Dept", "IT Dept", "Fleet Dept"];
+
+            if (branch === "Batangas Head Office") {
+                deptSelectElement.add(new Option("Select Department", "", !selectedDept, !selectedDept));
+                headOfficeDepts.forEach(dept => deptSelectElement.add(new Option(dept, dept)));
+            } else if (branch === "Batangas DC") {
+                deptSelectElement.add(new Option("Operation Dept", "Operation Dept", true, true));
+                deptSelectElement.readOnly = true;
+            } else if (otherBranches.includes(branch)) {
+                deptSelectElement.add(new Option("Branch", "Branch", true, true));
+                deptSelectElement.readOnly = true;
+            } else {
+                deptSelectElement.add(new Option("Select a Branch first", "", true, true));
+                deptSelectElement.disabled = true;
+            }
+
+            if (selectedDept) {
+                deptSelectElement.value = selectedDept;
+            }
+        }
+
+        specsTextarea && specsTextarea.addEventListener('focus', function () { if (this.value.trim() === '') this.value = '• '; });
+
+        specsTextarea && specsTextarea.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                this.value = this.value.substring(0, start) + '\n• ' + this.value.substring(this.selectionEnd);
+                this.selectionStart = this.selectionEnd = start + 3;
+            }
+            if (e.key === 'Backspace' && this.selectionStart > 0 && this.value.substring(this.selectionStart - 3, this.selectionStart) === '\n• ') {
+                e.preventDefault();
+                this.value = this.value.substring(0, this.selectionStart - 3) + this.value.substring(this.selectionStart);
+                this.selectionStart = this.selectionEnd = this.selectionStart - 3;
+            }
+        });
+
+        assetForm.addEventListener("submit", async e => {
+            e.preventDefault();
+            const loader = loaderOverlayAdd;
+            loader.style.display = 'flex';
+            try {
+                const formData = new FormData(assetForm);
+                const currentDateTime = document.getElementById("dateTimeDisplay").textContent;
+                formData.append("DateCreated", currentDateTime);
+                const photoFile = document.getElementById('assetPhoto').files[0];
+                if (photoFile) formData.append('photoData', await toBase64(photoFile));
+                const response = await fetch(scriptURL, { method: "POST", body: formData });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || "Submission failed. The server returned an error.");
+                }
+                assetForm.Type.value = "";
+                assetForm.Brand.value = "";
+                assetForm.Model.value = "";
+                assetForm.SerialNo.value = "";
+                assetForm.Specs.value = "";
+                assetForm.Remarks.value = "";
+                assetForm.Photo.value = "";
+                assetForm.TextRemarks.value = "";
+                setDateTime();
+                generateAssetCode();
+                fetchAssets();
+                window.parent.postMessage('refreshStats', '*');
+                showStatusModal("success", "Success!", "Asset registered successfully.");
+            } catch (err) {
+                showStatusModal("error", "Submission Error", err.message);
+            } finally {
+                loader.style.display = 'none';
+            }
+        });
+
+        function showStatusModal(type, title, message) {
+            const modal = document.getElementById("statusModal");
+            const modalContent = document.getElementById("modalContent");
+            const iconHtml = type === 'success' ? "<div style='font-size:36px;color:#2f9b4a;margin-bottom:8px'>✔️</div>" : "<div style='font-size:36px;color:#dc3545;margin-bottom:8px'>✖️</div>";
+            modalContent.innerHTML = `${iconHtml}<h3>${title}</h3><p style="color:#334">${message}</p><div style="margin-top:12px"><button onclick="closeStatusModal()" class="btn btn-primary">OK</button></div>`;
+            modal.style.display = "flex";
+        }
+
+        function showSideNotification(title, message) {
+            const notification = document.createElement('div');
+            notification.className = 'side-notification';
+            notification.style.position = 'fixed';
+            notification.innerHTML = `<h4 style="margin:0 0 5px;font-size:15px">${title}</h4><div style="font-size:13px;color:#285a8a">${message}</div>`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.classList.add('show'), 60);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 500);
+            }, 4200);
+        }
+
+        function closeStatusModal() { document.getElementById("statusModal").style.display = "none"; }
+        function closeUpdateModal() { document.getElementById('updateModal').style.display = 'none'; }
+        function closeAddAssetModal() { const assetForm = document.getElementById('assetForm'); assetForm.reset(); document.getElementById('addAssetModal').style.display = 'none'; }
+
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        document.getElementById('printBtn').addEventListener('click', () => {
+            if (filteredAssets.length > 0) {
+                const codesToPrint = filteredAssets.map(row => row[1]).filter(Boolean);
+                const encodedCodes = encodeURIComponent(JSON.stringify(codesToPrint));
+                const printUrl = `print.html?codes=${encodedCodes}&isModal=true`;
+                window.parent.postMessage({ action: 'openPrintModal', url: printUrl }, '*');
+            } else {
+                showStatusModal('error', 'No Assets', 'There are no assets in the current view to print.');
+            }
+        });
+
+        function makeDraggable(modalElement) {
+            const content = modalElement.querySelector(".modal-content");
+            const header = content.querySelector("h3");
+            if (!header) return;
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            header.style.cursor = 'move';
+            header.onmousedown = dragMouseDown;
+            function dragMouseDown(e) {
+                e = e || window.event; e.preventDefault();
+                pos3 = e.clientX; pos4 = e.clientY;
+                content.style.position = 'absolute';
+                content.style.top = content.offsetTop + 'px';
+                content.style.left = content.offsetLeft + 'px';
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            function elementDrag(e) {
+                e = e || window.event; e.preventDefault();
+                pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
+                pos3 = e.clientX; pos4 = e.clientY;
+                content.style.top = (content.offsetTop - pos2) + "px";
+                content.style.left = (content.offsetLeft - pos1) + "px";
+            }
+            function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
+        }
+
+        fetchAssets(true);
+        setInterval(fetchAssets, 30000);
+
+        window.addEventListener('message', (event) => {
+            if (event.data === 'openAddAssetModal') openAddAssetModal();
+            if (typeof event.data === 'object' && event.data.action === 'filterByType') filterByType(event.data.type);
+            if (typeof event.data === 'object' && event.data.action === 'filterByStatus') filterByStatus(event.data.statuses || event.data.status);
+        });
+
+        document.getElementById('showAllBtn').addEventListener('click', () => {
+            activeTypeFilter = null;
+            activeStatusFilter = null;
+            document.getElementById('searchInput').value = '';
+            if (userBranch === 'IT') {
+                document.getElementById('branchFilterSelect').value = "";
+                activeBranchFilter = null;
+            }
+            applyAllFilters();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            makeDraggable(document.getElementById('addAssetModal'));
+            makeDraggable(document.getElementById('updateModal'));
+        });
+
+        function filterByStatus(status, resetPage = true) {
+            const statusesToFilter = Array.isArray(status) ? status : [status];
+            activeStatusFilter = statusesToFilter;
+            activeTypeFilter = null;
+            document.getElementById('searchInput').value = '';
+            applyAllFilters(resetPage);
+        }
+
+        function filterByType(type, resetPage = true) {
+            activeTypeFilter = (type === 'All') ? null : type;
+            activeStatusFilter = null;
+            document.getElementById('searchInput').value = '';
+            applyAllFilters(resetPage);
+        }
+
+        function populateBranchFilter() {
+            const branchFilterSelect = document.getElementById('branchFilterSelect');
+            const branches = [...new Set(allAssets.map(row => row[3]))].sort();
+            branchFilterSelect.innerHTML = '<option value="">Filter by Branch...</option>';
+            branches.forEach(branch => {
+                if (branch) {
+                    const option = document.createElement('option');
+                    option.value = branch;
+                    option.textContent = branch;
+                    branchFilterSelect.appendChild(option);
+                }
+            });
+        }
+        document.getElementById('branchFilterSelect').addEventListener('change', function () {
+            activeBranchFilter = this.value || null;
+            applyAllFilters();
+        });
+
+        // Inject spin animation for loaders
+        (function injectSpin() {
+            const s = document.createElement('style'); s.innerHTML = `@keyframes spin{to{transform:rotate(360deg)}}`; document.head.appendChild(s);
+        })();
+        /* ---------- END: Original app script ---------- */
+    </script>
+</body>
+
+</html>
